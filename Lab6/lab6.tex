@@ -1,0 +1,397 @@
+\documentclass[10pt]{article}
+
+%these two are needed for tree drawings
+\usepackage{graphicx,qtree}
+
+%this package makes lists more compact
+\usepackage{mdwlist}
+
+%this package is to use the align environment
+\usepackage{amsmath}
+
+%We can get rid of the amsmath package with this definition
+\renewcommand{\implies}{\Rightarrow \ }
+
+%latexsym is needed for \Box
+\usepackage{latexsym}
+
+%This section is needed for the valuation brackets
+\usepackage{tikz}
+\newcommand{\llbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (1.75,0) -- (0,0) -- (0,4) -- (1.75,4);
+  \draw (1,0) -- (1,4);
+  \end{tikzpicture}
+  \
+}
+\newcommand{\rrbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (0,4) -- (1.75,4) -- (1.75,0) -- (0,0);
+  \draw (.75,0) -- (.75,4);
+  \end{tikzpicture}
+  \
+}
+
+%This package allows for the natural deduction proofs
+%Can be found here: http://math.ucsd.edu/~sbuss/ResearchWeb/bussproofs/bussproofs.sty
+\usepackage{bussproofs}
+
+%This is me being a jerk about margins
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={210mm,297mm},
+ left=10mm,
+ right=20mm,
+ top=10mm,
+ bottom=20mm,
+ }
+
+
+
+ %I want code to look nice
+\usepackage{listings}
+\usepackage{color}
+
+%I want urls
+\usepackage{hyperref}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+
+\lstdefinelanguage
+   [x64]{Assembler}     % add a "x64" dialect of Assembler
+   [x86masm]{Assembler} % based on the "x86masm" dialect
+   % with these extra keywords:
+   {morekeywords={CDQE,CQO,CMPSQ,CMPXCHG16B,JRCXZ,LODSQ,MOVSXD, %
+                  POPFQ,PUSHFQ,SCASQ,STOSQ,IRETQ,RDTSCP,SWAPGS}} % etc.
+
+
+\lstset{frame=tb,
+  language=[x64]Assembler,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\begin{document}
+
+%I hate the stock pound sign... so I fiddle with it here
+\title{Lab Week \raisebox{.22ex}{\large\#}6 \\
+	CIS 314}
+\author{}
+
+\maketitle
+
+\section{Y86 Assembly Simulator}
+
+
+After loading the Y86 simulator (\url{https://xsznix.github.io/js-y86/}), you'll be greeted with the following code:
+
+\begin{lstlisting}
+
+.pos 0
+Init:
+    irmovl Stack, %ebp
+    irmovl Stack, %esp
+    
+.pos 0x100
+Stack:
+    
+\end{lstlisting}
+
+
+The above creates some variable ``Stack'', and makes it an alias of the memory location 0x100. In addition, it has two instructions to set the stack and base pointer to the hex value 0x100.
+
+
+From here, we can start doing useful things by adding a ``main'' procedure:
+
+
+\begin{lstlisting}
+
+.pos 0
+Init:
+    irmovl Stack, %ebp
+    irmovl Stack, %esp
+    call Main
+    halt
+
+Main:
+    pushl %ebp
+    rrmovl %esp, %ebp //function prologue
+
+    irmovl $2, %eax
+
+    popl %ebp
+    ret               //function epilogue
+    
+.pos 0x100
+Stack:
+    
+\end{lstlisting}
+
+This procedure isn't very interesting -- it only moves the value `2' in to the register eax...
+
+
+\newpage
+
+\section{An Add Procedure}
+
+
+Let's make a more interesting procedure, one to add two numbers:
+
+
+\begin{lstlisting}
+
+.pos 0
+Init:
+    irmovl Stack, %ebp
+    irmovl Stack, %esp
+    call Main
+    halt
+    
+Add:    //int add(int a, int b)
+    pushl %ebp
+    rrmovl %esp, %ebp   //prologue
+    
+    
+    mrmovl 8(%ebp), %eax    //get first argument
+    mrmovl 12(%ebp), %ecx   //get second argument
+    addl %ecx, %eax         //add the two arguments
+    
+    popl %ebp
+    ret         //epilogue
+    
+    
+Main:
+    pushl %ebp
+    rrmovl %esp, %ebp   //prologue
+    
+    irmovl $2, %eax
+    pushl %eax
+    irmovl $3, %eax
+    pushl %eax
+    call Add
+    
+    brk         //at this point, the result is stored in %eax
+    
+    popl %ebp
+    ret         //epilogue
+    
+.pos 0x100
+Stack:
+
+\end{lstlisting}
+
+
+Uh oh! At the end of the execution, esp and ebp weren't put back to where they started! We need to clean up the stack in Main after we have fiddled with it!
+
+\newpage
+
+\begin{lstlisting}
+
+.pos 0
+Init:
+    irmovl Stack, %ebp
+    irmovl Stack, %esp
+    call Main
+    halt
+    
+Add:    //int add(int a, int b)
+    pushl %ebp
+    rrmovl %esp, %ebp   //prologue
+    
+    
+    mrmovl 8(%ebp), %eax    //get first argument
+    mrmovl 12(%ebp), %ecx   //get second argument
+    addl %ecx, %eax         //add the two arguments
+    
+    popl %ebp
+    ret         //epilogue
+    
+    
+Main:
+    pushl %ebp
+    rrmovl %esp, %ebp   //prologue
+    
+    irmovl $2, %eax
+    pushl %eax
+    irmovl $3, %eax
+    pushl %eax
+    call Add
+    
+    rrmovl %ebp, %esp   //at this point, the result is stored in %eax
+    
+    popl %ebp
+    ret         //epilogue
+    
+.pos 0x100
+Stack:
+
+\end{lstlisting}
+
+That's better.
+
+\section{Mult}
+
+Now for an even harder procedure. Since y86 doesn't have a multiplication instruction, if we want to multiply two numbers, we'll need to repeatedly add. Let's have a first attempt:
+
+\begin{lstlisting}
+
+Mult: //int mult(int a, int b)
+    pushl %ebp
+    rrmovl %esp, %ebp
+    
+    mrmovl 8(%ebp), %eax
+    mrmovl 12(%ebp), %ecx
+    irmovl $1, %edx
+    
+    loop:
+        addl %eax, %eax
+        subl %edx, %ecx
+        jg loop
+    
+    
+    popl %ebp
+    ret
+
+\end{lstlisting}
+
+For some reason, this code actually serves to left shift! A moment's thought reveals that the problem is in the `add' instruction -- we're always doubling eax! Let's try this instead:
+
+\begin{lstlisting}
+
+Mult: //int mult(int a, int b)
+    pushl %ebp
+    rrmovl %esp, %ebp
+    pushl %ebx            //since ebx is callee save, we need to back it up
+    
+    mrmovl 8(%ebp), %eax
+    rrmovl %eax, %ebx
+    mrmovl 12(%ebp), %ecx
+    irmovl $1, %edx
+    
+    loop:
+        addl %ebx, %eax
+        subl %edx, %ecx
+        jg loop
+    
+    popl %ebx
+    popl %ebp
+    ret
+
+\end{lstlisting}
+
+That still doesn't work! To figure out why, consider the case where we multiply something by 1 -- we'll always get in to the loop, which implies we will always multiply by at least two! The solution is to decrement the counter variable before entering the loop!
+
+
+\begin{lstlisting}
+
+    
+Mult: //int mult(int a, int b)
+    pushl %ebp
+    rrmovl %esp, %ebp
+    pushl %ebx
+    
+    mrmovl 8(%ebp), %eax
+    rrmovl %eax, %ebx
+    mrmovl 12(%ebp), %ecx
+    irmovl $1, %edx
+    subl %edx, %ecx
+    je end
+    
+    loop:
+        addl %ebx, %eax
+        subl %edx, %ecx
+        jg loop
+    
+    end:
+    popl %ebx
+    popl %ebp
+    ret
+
+\end{lstlisting}
+
+There are some obvious problems with the procedure -- it won't work for 0 or anything negative -- but it serves to show some fun things in y86.
+
+\section{Pointers in Y86}
+
+
+Up until now, we've only seen how to deal with values... what about dealing with pointers? We can declare an array as follows:
+
+
+\begin{lstlisting}
+
+.pos 0x104  //make the array start at location 0x104
+.align 4    //make each element in the array occupy 4 bytes
+array:
+    .long 0x1   //element 0
+    .long 0x2   //element 1
+    .long 0x3   //element 2
+\end{lstlisting}
+
+\newpage
+
+Neat! What if we modify the add procedure to take pointers, and we return the result of adding the dereferenced values together:
+
+
+
+\begin{lstlisting}
+
+Add:    //int add(int* a, int* b)
+    pushl %ebp
+    rrmovl %esp, %ebp   //prologue
+    
+    
+    mrmovl 8(%ebp), %eax    //get first argument
+    mrmovl 12(%ebp), %ecx   //get second argument
+    mrmovl (%eax), %eax     //dereference first argument
+    mrmovl (%ecx), %ecx     //dereference second argument
+    addl %ecx, %eax         //add the two arguments
+    
+    popl %ebp
+    ret         //epilogue
+
+
+\end{lstlisting}
+
+
+That's all fine and good, but how do we send a pointer to `Add'?
+
+
+\begin{lstlisting}
+
+Main:    
+    pushl %ebp
+    rrmovl %esp, %ebp   //prologue
+    
+    irmovl array, %eax
+    irmovl $4, %ecx
+    pushl %eax
+    addl %ecx, %eax
+    pushl %eax
+    call Add
+
+    rrmovl %ebp, %esp
+    
+    popl %ebp
+    ret         //epilogue
+
+
+\end{lstlisting}
+
+The above will add array[0] + array[1]. Fun!
+
+\end{document}

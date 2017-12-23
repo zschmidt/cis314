@@ -1,0 +1,52 @@
+Note:
+	Most websites will point you towards compiler flags... most are ignored in clang :(
+
+
+General:
+
+
+1.) Use better algorithm
+
+
+2.) Perspective:
+	if( x!=0 )x=0;
+	<==>
+	x=0;
+
+3.) Inlining
+	via inline command
+	via macros
+	via -finline-functions (sorry clang people)
+
+	--> Note:
+		If your code is really small, it will
+		fit somewhere generally closer to the CPU.
+
+		This means that if you `over-optimize' you can
+		end up writing slower code.
+
+4.) Unroll loops
+	by hand
+	via -funroll-loops
+
+5.) Loop jamming
+
+6.) Loop inversion
+	takes advantage of the fact that subl sets CC
+
+7.) Strength reduction
+	
+
+8.) Arithmetic reordering
+	mentioned in book... but why stop there!
+
+	//OLD
+	float a, b, c, d, f, g;  
+  	a = b / c * d;  
+  	f = b * g / c;
+
+	//NEW
+	float a, b, c, d, f, g;  
+	float div = b / c;
+	a = div * d;
+	f = div * g;

@@ -1,0 +1,77 @@
+__This is just some made up final exam… this week is final review!___
+
+
+
+1.) 
+Consider 2048-byte direct mapped cache with 64-byte blocks operating on 32-bit addresses.
+
+
+How many bits for block offset?
+
+How many bits for tag?
+
+How many bits for set?
+
+
+2.) 
+Consider a 32-byte direct-mapped cache with 4-byte blocks for an 8-bit machine (256 bytes of memory)
+
+If the following addresses are accessed in sequence, which addresses will result in cache hits and which will result in misses (assuming the cache parameters above and that the cache is initially empty)? Show the tag, set, and offset for each access and explain the reason for each hit and miss:
+
+0x04
+0x06
+0x10
+0x24
+0x06
+0x26
+
+
+3.) 
+void foo(int *a, int *b, int i, int n) {
+	for (int j = 0; j < length(b); ++j) {
+		a[i*n] += b[i*n + j];
+	}
+}
+
+
+Why won't compiler get rid of call to length(b)?
+
+Why won't compiler optimize out memory writes?
+
+How can we make it better?
+
+
+void foo(int *a, int *b, int i, int n) {
+	int in = i*n;
+	int lengthb = length(b) + in;
+	int acc = 0;
+	for (int j = in; j < lengthb; ++j) {
+		acc += b[j];
+	}
+	a[in] += acc;
+}
+
+
+
+4.) 
+Describe the high-level functionality of each Y86 pipeline stage during execution of the instruction: 
+
+xorl %ecx, %edx
+
+
+
+
+5.) 
+mrmovl 0(%eax) %ecx
+mrmovl 0(%ebx) %edx
+addl %ecx %edx
+
+
+How many stalls with/without forwarding?
+
+
+6.) 
+Draw an XOR circuit using only AND, OR, and NOT gates.
+
+
+

@@ -1,0 +1,260 @@
+\documentclass[10pt]{article}
+
+%these two are needed for tree drawings
+\usepackage{graphicx,qtree}
+
+%this package makes lists more compact
+\usepackage{mdwlist}
+
+%this package is to use the align environment
+\usepackage{amsmath}
+
+%We can get rid of the amsmath package with this definition
+\renewcommand{\implies}{\Rightarrow \ }
+
+%latexsym is needed for \Box
+\usepackage{latexsym}
+
+%This section is needed for the valuation brackets
+\usepackage{tikz}
+\newcommand{\llbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (1.75,0) -- (0,0) -- (0,4) -- (1.75,4);
+  \draw (1,0) -- (1,4);
+  \end{tikzpicture}
+  \
+}
+\newcommand{\rrbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (0,4) -- (1.75,4) -- (1.75,0) -- (0,0);
+  \draw (.75,0) -- (.75,4);
+  \end{tikzpicture}
+  \
+}
+
+%This package allows for the natural deduction proofs
+%Can be found here: http://math.ucsd.edu/~sbuss/ResearchWeb/bussproofs/bussproofs.sty
+\usepackage{bussproofs}
+
+%This is me being a jerk about margins
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={210mm,297mm},
+ left=10mm,
+ right=20mm,
+ top=10mm,
+ bottom=20mm,
+ }
+
+
+
+ %I want code to look nice
+\usepackage{listings}
+\usepackage{color}
+
+%I want urls
+\usepackage{hyperref}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\begin{document}
+
+%I hate the stock pound sign... so I fiddle with it here
+\title{Lab Week \raisebox{.22ex}{\large\#}2 \\
+	CIS 314}
+\author{}
+
+\maketitle
+
+\section*{Binary Refresher\footnote{This would ideally appear in lab 1, but I forgot that people didn't know binary...}}
+
+Apparently, this is the first course where people use binary (which feels insane, but that's beside the point), so it makes sense to do a little refresher. Since it's not easy to think in base 2, it's probably easiest to think back to how we all learned to count in base 10. 
+
+\subsection*{Base 10}
+
+Base 10 consists of the digits 0-9, and every digit is a power of ten -- the ``first'' digit has a value that is computed as $a\cdot 10^0$. For example, the value of $4 = 4 \cdot 10^0 = 4 \cdot 1 = 4$... wow! Similarly, bigger numbers can be seen as digits multiplied by 10 to a certain power. We can now see that the value of $385 = 3\cdot 10^2 + 8\cdot 10^1 + 5\cdot 10^0 = 300 + 80 + 5 = 385$ (now is the time to say you're bored).
+
+
+\noindent Interesting things happen, though, when we want to add 1 to 9... we `overflow' -- this results in us flipping the ones place back to 0, and incrementing the tens place from 0 to 1, meaning $9 + 1 = 10$. Okay, maybe it's not \textit{that} interesting...
+
+
+\subsection*{Base 2}
+
+Let's now consider binary -- we only have two digits, 0 and 1, and every digit is now a power of 2, so the number $1101_{2} = 1\cdot 2^3 + 1\cdot 2^2 + 0\cdot 2^1 + 1\cdot 2^0 = 8_{10} + 4_{10} + 0_{10} + 1_{10} = 13_{10}$. Similarly, when we want to add $1_{2} + 1{2}$, we need to overflow and jump to the next bit -- we end up with $1_{2} + 1_{2} = 10_{2}$. It's not so different after all! We can see how this can be generalized to base $n$, we only need $n$ distinct digits, and then each digit becomes $n$ raised to some power.
+
+
+
+\section*{Binary Printer}
+
+In the first assignment, we saw how to print the bytes associated with particular datatypes. Unfortunately, it printed things in the byte order that our computer stores them, i.e. little endian order. This means that simple numbers like an \texttt{int a = 7} would print as \texttt{07 00 00 00}... gross! Wouldn't it be great to see the binary representation of datatypes, but in the correct order?
+
+
+\noindent To accomplish this, think about the following example:
+
+\begin{lstlisting}
+
+char a = 7; //The associated binary looks like 0000 0111
+
+//If we want to output the binary, it's as easy as asking every bit if it happens to be a `1'
+
+//To do that, we want to print the most significant bit first, so we could write the following code
+
+printf("Is most significant bit zero? %d\n", a>>7 & 1);
+
+//The above line works by shifting `a' to the right 7 bits, and then `and'ing the least significant bit by 1 -- since C doesn't have boolean types, we will output either 0 (false) or 1 (true)
+
+//We could repeat the above 8 times to print all the numbers
+
+int i;
+for( i=7; i>=0; i-- ){
+  printf("%d", a>>i & 1);
+}
+
+\end{lstlisting}
+
+
+\noindent Wow! We now have a loop that will print the binary associated with a \texttt{char} datatype. What happens if we set \texttt{a} to \texttt{'a', 127, 128}... why?
+
+
+
+\noindent The above code can be modified slightly (and moved in to a function) to accept a 32 bit datatype:
+
+\begin{lstlisting}
+#include <stdio.h>
+void _32bitBinaryPrinter(unsigned a){
+  int i;
+  for( i=31; i>=0; i-- ){
+    printf("%d", a>>i & 1);
+}
+  printf("\n");
+}
+int main(){
+  unsigned a = 8;
+  float b = 8.0;
+  float c = 8.5;
+  _32bitBinaryPrinter(a);
+  //_32bitBinaryPrinter(b);
+  //_32bitBinaryPrinter(c);
+return 0; }
+
+\end{lstlisting}
+
+
+\noindent What happens if we uncomment the line with arguments \texttt{b} or \texttt{c}? When we send \texttt{b} in as an argument, we could be convinced that it's right -- it looks like it's printing 8 after all, but something is definitely wrong when we send in \texttt{c}!
+
+
+
+\section*{Unions}
+
+The problem with the previous code is how C treats casts from floating point datatypes to integer datatypes -- in essence, the decimal portion is truncated. This is obviously no good if we want to see how \texttt{8.5} is represented in the computer. Assignment 2 has a neat little function that is reproduced below:
+
+
+\begin{lstlisting}
+unsigned f2u(float f) {
+  return *((unsigned*)&f);
+}
+\end{lstlisting}
+
+
+Huh?!? If we break it down in to several parts, we can understand how the above works:
+
+\begin{lstlisting}
+unsigned f2u(float f) {
+
+  unsigned* a = (unsigned*) &f; //Treat the address of f as pointing to an unsigned integer
+
+
+  unsigned b = *a; //Dereference the value that a is pointing to
+
+
+  return b;
+}
+\end{lstlisting}
+
+The gist of the function is that we need to convince the compiler that the address of a floating point datatype is actually pointing to an unsigned datatype (wink wink), and then we dereference the value -- this returns us an unsigned integer with the same bit pattern as the original floating point. What happens if we now send a float through this wacky funciton, and then through our binary printer:
+
+
+\begin{lstlisting}
+
+float c = 8.5;
+
+_32bitBinaryPrinter(f2u(8.5));
+\end{lstlisting}
+
+\newpage
+
+As it turns out, we could use a second method to accomplish the goals of the function \texttt{f2u}:
+
+
+\begin{lstlisting}
+
+unsigned f2u(float f){
+  
+  union u{
+    float f;
+    unsigned u;
+  };
+
+  union u u1;
+  u1.f = f;
+
+  return u1.u;
+}
+\end{lstlisting}
+
+\noindent The above takes advantage of a C construct called a \textit{union} which can be thought of as a datatype which allows us to store more than one piece of information in the same memory location -- in this case we are telling it to be able to store both an unsigned int and a float int the same four bytes. By populating the union with a float, and then returning an unsigned int, we are accomplishing the same thing as the pointer variant of \texttt{f2u()} used in the assignment.
+
+
+\noindent This can be simplified a little bit through the use of \texttt{typedef} -- recall that \texttt{typedef} takes two arguments, the second is some alias, and the first is what we want the alias to refer to. Consider the following:
+
+
+\begin{lstlisting}
+
+typedef unsigned long long int my_type; //unsigned long long int is the worst to type, I want to type my_type
+
+\end{lstlisting}
+
+\noindent We can use the same to simplify the union example from above:
+
+\begin{lstlisting}
+
+unsigned f2u(float f){
+  
+  typedef union{
+    float f;
+    unsigned u;
+  }u;
+
+  u u1;
+  u1.f = f;
+
+  return u1.u;
+}
+
+\end{lstlisting}
+
+\noindent Now we don't have to type \texttt{union} when we use it!
+
+\end{document}
+
+

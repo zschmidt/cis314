@@ -1,0 +1,77 @@
+
+
+
+Do you want to slow your code down, but make it so it can fit in RAM on a satellite?
+
+
+
+Rules:
+
+chars can start on any byte address
+
+2-byte shorts must start on an even address
+
+4-byte ints or floats must start on an address divisible by 4
+
+8-byte longs or doubles must start on an address divisible by 8
+
+
+Padding (assume -m32):
+
+
+	Consider this example:
+
+		/* Let base address be 0x100 */
+		char *p; 	//Self aligned to address divisible by 4... 0x100
+		char c;		//Put at next free byte... 0x104
+		int x;		//Put at next address divisible by 4... 0x108
+
+		Question:
+			What is at memory location 0x105, 0x106, 0x107?
+
+			--> Slop!
+
+
+Struct Padding:
+
+	struct foo3 {
+		char *p;     /* 4 bytes */
+		char c;      /* 1 byte */
+	};
+
+	struct foo3 singleton;
+	struct foo3 quad[4];
+
+	Question:
+		What's the *stride address* of structure foo3?
+		Analogously, what is (&quad)[1]?
+
+		quad contains 12 bytes of slop... uses 32 bytes total... 37.5% slop!
+
+
+
+/* Example */
+//move order of declarations
+
+
+Bitfields:
+
+	size_t time:4;
+	time = gettimeofday()
+
+
+struct packedBool{
+	char a:1;
+	char b:1;
+	char c:1;
+	char d:1;
+	char e:1;
+	char f:1;
+	char g:1;
+	char h:1;
+};
+
+
+
+
+

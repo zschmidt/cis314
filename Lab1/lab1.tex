@@ -1,0 +1,189 @@
+\documentclass[10pt]{article}
+
+%these two are needed for tree drawings
+\usepackage{graphicx,qtree}
+
+%this package makes lists more compact
+\usepackage{mdwlist}
+
+%this package is to use the align environment
+\usepackage{amsmath}
+
+%We can get rid of the amsmath package with this definition
+\renewcommand{\implies}{\Rightarrow \ }
+
+%latexsym is needed for \Box
+\usepackage{latexsym}
+
+%This section is needed for the valuation brackets
+\usepackage{tikz}
+\newcommand{\llbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (1.75,0) -- (0,0) -- (0,4) -- (1.75,4);
+  \draw (1,0) -- (1,4);
+  \end{tikzpicture}
+  \
+}
+\newcommand{\rrbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (0,4) -- (1.75,4) -- (1.75,0) -- (0,0);
+  \draw (.75,0) -- (.75,4);
+  \end{tikzpicture}
+  \
+}
+
+%This package allows for the natural deduction proofs
+%Can be found here: http://math.ucsd.edu/~sbuss/ResearchWeb/bussproofs/bussproofs.sty
+\usepackage{bussproofs}
+
+%This is me being a jerk about margins
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={210mm,297mm},
+ left=10mm,
+ right=20mm,
+ top=10mm,
+ bottom=20mm,
+ }
+
+
+
+ %I want code to look nice
+\usepackage{listings}
+\usepackage{color}
+
+%I want urls
+\usepackage{hyperref}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\begin{document}
+
+%I hate the stock pound sign... so I fiddle with it here
+\title{Lab Week \raisebox{.22ex}{\large\#}1 \\
+	CIS 314}
+\author{}
+
+\maketitle
+
+\section*{Hello World!}
+
+Our first program, \textit{Hello World}, is simple enough:
+
+\begin{lstlisting}
+#include <stdio.h>  //need this library to do input and output
+
+int main(int argc, char** argv){  //the signature of main always looks like this
+  
+  printf("Hello World!\n");
+
+  return 0;
+}
+\end{lstlisting}
+
+\noindent Once we've saved the above program somewhere convenient (I've named my file \texttt{lab1.c}), we can compile and run it by opening the terminal and typing \texttt{gcc lab1.c}, then we can run the produced executable with the command \texttt{./a.out} (that would be \texttt{./a.exe} for Windows users). Easy!
+
+
+
+\section*{Everything is Bits}
+
+C is likely the first language you will encounter that peels back the layers of abstraction -- we'll be dealing with bits directly! To motivate this, imagine we have the following line of code:
+
+\begin{lstlisting}
+//Declare a variable named 'a' that occupies one byte of memory and holds the decimal value 50
+char a = 50;
+
+\end{lstlisting}
+
+\noindent We can now use C to show us a couple interesting things:
+
+\begin{lstlisting}
+char a = 50;
+
+
+printf("a = %d\n", a); //print 'a' as an integer
+
+printf("a = %c\n", a); //print 'a' as a character
+
+\end{lstlisting}
+
+\noindent The second print statement ends up printing '2'! If that seems wrong, pull up an ASCII table\footnote{I've been using \url{http://www.asciitable.com/}} and stare at it for a \textit{bit}. The main takeaway from this section is to note that we are storing bits and then telling C how to interpret those bits -- nothing changed in the hardware for us to print both 50 and '2', only how we told the computer to interpret those bits changed.
+
+
+
+\section*{Datatypes}
+
+Datatypes in C can (essentially...) be thought of as containers of varying size -- the smallest being \texttt{char} which occupies one byte, up to \texttt{long long} which holds 8 bytes\footnote{Yes, we can hold much more in a dynamically allocated array, but we're not there yet!}. Conspicuously missing from the list of built in datatypes is bool. In C, integers are used for boolean values, 0 being false and nonzero values being true.
+
+
+\section*{Signed vs. Unsigned}
+
+Additionally, C has a concept of \textit{signed}-ness, signed datatypes being capable of holding negative numbers (the exception being with the floating point datatypes which can hold positive and negative numbers without any special identifier). In general, specifying just a datatype (i.e. \texttt{char}) means that you will have a signed datatype, and specifying \textit{just} \texttt{unsigned} means you have an \texttt{int}.
+
+
+\section*{Bitwise Operators}
+
+The first interesting bitwise operator is left shift (denoted \texttt{<<} in code), which has the effect of multiplying the shifted number by 2 for every bit shifted (i.e. a left shift of $n$ results in a multiplication of $2^n$).
+
+
+More interesting than that is the case of right shift. Ideally, we would want right shift to be the ``opposite'' of left shift -- we want something to divide by 2. This works just fine with positive numbers, but negative numbers prove more of a challenge. As it turns out, there are two types of right shift to deal with these two cases, called \textit{arithmetic} for signed datatypes and \textit{logical} for unsigned datatypes. In C, we don't have to worry about two different syntaxes, but we absolutely need to know what's going on\footnote{As always, Wikipedia is helpful \url{https://en.wikipedia.org/wiki/Arithmetic_shift}}!
+
+
+The next bitwise operators all \textit{seem} familiar, but are subtly different than the logical operators you've previously encountered. Consider the following example:
+
+\begin{lstlisting}
+
+char a = 0;
+char b = 2;
+
+printf("a||b = %d\n", a||b);
+printf("a|b = %d\n", a|b);
+
+\end{lstlisting}
+
+
+The first print statement should have been expected, as we know that 0 is false in C, and 2 is true, so $0||2$ produces 1 (true). The second is perhaps more interesting -- the computer is performing a logical `or' on each pair of bits directly, like so:
+
+\begin{lstlisting}
+a   =   0000 0000
+b   =   0000 0010
+----------------
+output 0000 0010
+\end{lstlisting}
+
+Now we can clearly see how it's ending up with 2! The same sort of idea is how bitwise `and' (\texttt{\&}), `xor' (\texttt{\^}), and `not' (\texttt{\~}) work. Be careful not to use the logical not instead of bitwise not!
+
+\section*{Typedef}
+
+If you're following along in the book, you may come across the keyword \texttt{typedef}, which allows the programmer to make aliases of existing types. For example, if my program made judicious use of \texttt{unsigned long long int}'s, I may want to alias that type to something shorter to write such as \texttt{myInt}. I could accomplish this with a \texttt{typedef} as follows:
+
+\begin{lstlisting}
+typedef unsigned long long int myInt;
+\end{lstlisting}
+
+
+\section*{Endianness}
+Looking at page 42 in the book, if we run the code as written and test it on something (for example running \texttt{show\_int(7);}), we will see that the output is inexplicably reversed (my computer shows \texttt{07 00 00 00}). This is due to the concept of \textit{endianness}, where my computer stores the least significant byte in the lowest memory location. If you have a big endian computer, I want to see it!
+
+
+\end{document}

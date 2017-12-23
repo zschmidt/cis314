@@ -1,0 +1,295 @@
+\documentclass[10pt]{article}
+
+%these two are needed for tree drawings
+\usepackage{graphicx,qtree}
+
+%this package makes lists more compact
+\usepackage{mdwlist}
+
+%this package is to use the align environment
+\usepackage{amsmath}
+
+%We can get rid of the amsmath package with this definition
+\renewcommand{\implies}{\Rightarrow \ }
+
+%latexsym is needed for \Box
+\usepackage{latexsym}
+
+%This section is needed for the valuation brackets
+\usepackage{tikz}
+\newcommand{\llbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (1.75,0) -- (0,0) -- (0,4) -- (1.75,4);
+  \draw (1,0) -- (1,4);
+  \end{tikzpicture}
+  \
+}
+\newcommand{\rrbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (0,4) -- (1.75,4) -- (1.75,0) -- (0,0);
+  \draw (.75,0) -- (.75,4);
+  \end{tikzpicture}
+  \
+}
+
+%This package allows for the natural deduction proofs
+%Can be found here: http://math.ucsd.edu/~sbuss/ResearchWeb/bussproofs/bussproofs.sty
+\usepackage{bussproofs}
+
+%This is me being a jerk about margins
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={210mm,297mm},
+ left=10mm,
+ right=20mm,
+ top=10mm,
+ bottom=20mm,
+ }
+
+
+
+ %I want code to look nice
+\usepackage{listings}
+\usepackage{color}
+
+%I want urls
+\usepackage{hyperref}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\begin{document}
+
+%I hate the stock pound sign... so I fiddle with it here
+\title{Lab Week \raisebox{.22ex}{\large\#}3 \\
+	CIS 314}
+\author{}
+
+\maketitle
+
+\section*{How to declare array}
+
+Array declarations in C is (nearly) identical to how it was done in Java:
+
+\begin{lstlisting}
+//Declare an array named 'array' of length 5 which will hold integers
+int array[5];
+\end{lstlisting}
+
+\noindent Once we have declared an array, we can populate it (and subsequently print the values) by using some form of iteration:
+
+
+\begin{lstlisting}
+int array[5];
+
+//To be compliant with gcc, we need to forward declare our index counter
+int i;
+for(i=0; i<5; i++){
+  array[i] = i;
+}
+
+//This function will be moved later... otherwise we could just print the values
+//  in the loop above!
+for(i=0; i<5; i++){
+  printf("array[%d] = %d\n", i, array[i]);
+}
+
+\end{lstlisting}
+
+
+
+
+\section*{What is an array?}
+
+Recall back to arrays in Java -- a common issue is that people will attempt to print an array by simply putting the array value into some output stream and expecting it show all values in the array. Unfortunately, this only printed the memory location of the beginning of the array. As it turns out, C is exactly the same:
+
+\begin{lstlisting}
+//Declare an array named 'array' of length 5 which will hold integers
+int array[5];
+
+//...
+//This section populates the array as above
+//...
+
+printf("array = 0x%X\n", array);
+
+//The above will print something like "array = 0x578A9D20"
+
+\end{lstlisting}
+
+\noindent Where it gets interesting is when we dereference the array:
+
+\begin{lstlisting}
+//Declare an array named 'array' of length 5 which will hold integers
+int array[5];
+
+//...
+//This section populates the array as above
+//...
+
+printf("*array = %d\n", *array);
+
+//The above will now print "*array = 0"
+
+\end{lstlisting}
+
+\noindent Conveniently, when we dereference the array we get the value that is held in array[0]! The next thing that may be of interest is what happens when we ``increment'' array:
+
+\begin{lstlisting}
+//Declare an array named 'array' of length 5 which will hold integers
+int array[5];
+
+//...
+//This section populates the array as above
+//...
+
+printf("*(array+1) = %d\n", *(array+1));
+//The above will now print "*(array+1) = 1"
+
+printf("array+1 = %d\n", array+1);
+//The above will print something like "array = 0x578A9D24"
+
+\end{lstlisting}
+
+\noindent The first print statement \textit{feels} like it makes sense -- we're now getting the value of array[1] -- but the second print statement actually says something deeper. As it turns out, when we increment the pointer \texttt{array} by 1, we end up increasing its value by 4.\footnote{For more info, see \url{https://stackoverflow.com/questions/5610298/why-does-int-pointer-increment-by-4-rather-than-1}} After a bit of reflection, it should become apparent that there's a second way to access the slots of an array:
+
+
+\begin{lstlisting}
+int array[5];
+
+//...
+//This section populates the array as above
+//...
+
+//This function is semantically equivalent to the above printing function -- neat!
+for(i=0; i<5; i++){
+  printf("array[%d] = %d\n", i, *(array + i));
+}
+
+\end{lstlisting}
+
+
+\section*{Make printing function for arrays\footnote{I played around with moving this into the previous section, but I'm unsure where it works better}}
+
+Since we now know that our variable \texttt{array} \textit{is} a pointer, it should become apparent how we could split the array printing into its own function:
+
+\begin{lstlisting}
+
+void arrayPrinter(int* array, int length){
+  int i;
+  for(i=0; i<length; i++){
+    printf("array[%d] = %d\n", i, *(array + i));
+  }
+}
+
+
+int main(int argc, char** argv){
+
+  int array[5];
+
+  //...
+  //This section populates the array as above
+  //...
+
+
+  //Since array is simply a pointer to the beginning of our array
+  //  we invoke our function like this
+  arrayPrinter(array);
+}
+
+
+\end{lstlisting}
+
+
+\section*{Dynamic Array Allocation}
+
+So far, we've only seen how to declare an array when we know the size up front. As it turns out, if we don't know the size of the array at compile time, we need to do something different:
+
+\begin{lstlisting}
+
+int main(int argc, char** argv){
+  int length;
+
+  printf("Enter the length of the array:\n");
+  //We need to provide the address of length -- we're changing its value as a side effect
+  scanf("%d", &length);
+
+  //malloc has a signature which looks like:
+  //  void* malloc(size)
+
+  //The size that the array needs to be is sizeof(int)*length
+  int* array = malloc(length *sizeof(int));
+
+  //At this point we have an array just as before
+}
+
+\end{lstlisting}
+
+\noindent At this point, it's useful to note that even though this memory has been allocated to us, the computer did not ``set'' the memory in any way\footnote{I mentioned \texttt{calloc()} at this point in the lab, and played around with uninitialized variables} -- it will hold whatever value was there before it was allocated!
+
+
+\section*{In-place Swap}
+
+
+\begin{lstlisting}
+
+void in_place_swap(int* x, int* y){
+  *x ^= *y;
+  *y ^= *y;
+  *x ^= *y;
+}
+
+int main(int argc, char** argv){
+
+  int x = 1;
+  int y = 2;
+
+  //We need to provide the memory locations of x and y to our function
+  in_place_swap(&x, &y);
+  //After this, x=2, y=1... wow!
+}
+\end{lstlisting}
+
+\noindent To see why this works, why not do a little example:
+
+\begin{lstlisting}
+
+void in_place_swap(int* x, int* y){
+
+  //We'll do this in binary so it becomes apparent
+  //Let *x = 01, *y = 10
+
+  *x ^= *y;
+  //Now *x = 01 ^ 10 = 11
+
+  *y ^= *y;
+  // *y = 11 ^ 10 = 01... the original value of *x
+
+  *x ^= *y;
+  // *x = 11 ^ 01 = 10... the original value of *y
+}
+
+\end{lstlisting}
+
+
+
+\end{document}

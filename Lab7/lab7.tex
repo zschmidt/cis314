@@ -1,0 +1,204 @@
+\documentclass[10pt]{article}
+
+%these two are needed for tree drawings
+\usepackage{graphicx,qtree}
+
+%this package makes lists more compact
+\usepackage{mdwlist}
+
+%this package is to use the align environment
+\usepackage{amsmath}
+
+%We can get rid of the amsmath package with this definition
+\renewcommand{\implies}{\Rightarrow \ }
+
+%latexsym is needed for \Box
+\usepackage{latexsym}
+
+%This section is needed for the valuation brackets
+\usepackage{tikz}
+\newcommand{\llbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (1.75,0) -- (0,0) -- (0,4) -- (1.75,4);
+  \draw (1,0) -- (1,4);
+  \end{tikzpicture}
+  \
+}
+\newcommand{\rrbracket}{\
+  \begin{tikzpicture}[scale=0.09,baseline=.3em]
+  \draw (0,4) -- (1.75,4) -- (1.75,0) -- (0,0);
+  \draw (.75,0) -- (.75,4);
+  \end{tikzpicture}
+  \
+}
+
+%This package allows for the natural deduction proofs
+%Can be found here: http://math.ucsd.edu/~sbuss/ResearchWeb/bussproofs/bussproofs.sty
+\usepackage{bussproofs}
+
+%This is me being a jerk about margins
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={210mm,297mm},
+ left=10mm,
+ right=20mm,
+ top=10mm,
+ bottom=20mm,
+ }
+
+
+
+ %I want code to look nice
+\usepackage{listings}
+\usepackage{color}
+
+%I want urls
+\usepackage{hyperref}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+
+\lstdefinelanguage
+   [x64]{Assembler}     % add a "x64" dialect of Assembler
+   [x86masm]{Assembler} % based on the "x86masm" dialect
+   % with these extra keywords:
+   {morekeywords={CDQE,CQO,CMPSQ,CMPXCHG16B,JRCXZ,LODSQ,MOVSXD, %
+                  POPFQ,PUSHFQ,SCASQ,STOSQ,IRETQ,RDTSCP,SWAPGS}} % etc.
+
+
+\lstset{frame=tb,
+  language=[x64]Assembler,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\begin{document}
+
+%I hate the stock pound sign... so I fiddle with it here
+\title{Lab Week \raisebox{.22ex}{\large\#}7 \\
+	CIS 314}
+\author{}
+
+\maketitle
+
+\section{Pipeline Stalls}
+
+This week's assignment consists of two parts, a giant sort function and a question about pipeline stalls. For this part, I simply did the example from section 4.5 in the book (first mentioned on page 409), which was as follows:
+
+\begin{lstlisting}
+#how many pipeline stalls (or bubbles) will be necessary for the following code
+#   with and without forwarding
+irmovl $3, %eax
+irmovl $10, %edx
+addl %eax, %edx
+
+\end{lstlisting}
+
+
+\section{y86}
+
+Selection sort relies on the ability to find the index associated with the minimal element in the unsorted portion of the array. For this lab, (since I don't want to give away too much) I decided to write some function which would take an array and return the memory location of the least element. It's not directly applicable to the assignment, but it may help with some concepts\footnote{I made sure to note that it wouldn't be terribly wise to use this procedure in the assignment, merely that I wanted to show my thought process for writing such a procedure. Nonetheless, some students will end up calling findMin...}.
+
+
+\begin{lstlisting}
+.pos 0
+Init:
+    irmovl Stack, %ebp
+    irmovl Stack, %esp
+    call Main
+    halt
+    
+findMin:    #int* findMin(int*, int)
+    pushl %ebp
+    rrmovl %esp, %ebp
+    #prologue
+    pushl %ebx
+    pushl %esi
+    #backing up callee save registers
+    
+    #grab the arguments
+    mrmovl 8(%ebp), %ecx
+    mrmovl 12(%ebp), %edx
+    
+    #make a guess for the min... a[0]!
+    rrmovl %ecx, %eax
+    
+    #we generally always need 4 and 1 somewhere
+    irmovl 4, %ebx
+    irmovl 1, %esi
+    
+    #prime the loop
+    subl %esi, %edx
+    
+    loop:
+        addl %ebx, %ecx
+        pushl %ecx
+        pushl %eax
+        #since eax and ecx will get overwritten, need to back them up!
+        mrmovl (%ecx), %ecx
+        mrmovl (%eax), %eax
+        subl %ecx, %eax #eax - ecx
+        popl %eax
+        popl %ecx
+        cmovg %ecx, %eax
+        subl %esi, %edx
+        jg loop
+    
+    popl %esi
+    popl %ebx
+    popl %ebp
+    ret
+    
+Main:
+    pushl %ebp
+    rrmovl %esp, %ebp
+    
+    irmovl 5, %eax
+    pushl %eax          
+    #remember, the first argument we push will be the last argument 
+    #  from the perspective of the callee
+    irmovl array, %eax
+    pushl %eax
+    call findMin
+    
+    rrmovl %ebp, %esp #clean up the stack
+    popl %ebp
+    ret
+    
+    
+.pos 0x104  #out of the reach of our stack
+array:
+    .long 0x4
+    .long 0x1
+    .long 0x3
+    .long 0x5
+    .long 0x4
+    
+.pos 0x100
+Stack:
+    
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+\end{document}
